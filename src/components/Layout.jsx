@@ -66,6 +66,7 @@ export default function Layout() {
           { to: '/create', label: 'Create group' },
           { to: '/my-group', label: 'My group', badge: pendingCount },
           { to: '/chat', label: 'Chat' },
+          ...(profile?.is_admin ? [{ to: '/admin', label: '⭐ Admin' }] : []),
         ].map(tab => (
           <NavLink key={tab.to} to={tab.to} style={({ isActive }) => ({
             padding: '12px 16px', fontSize: 13, textDecoration: 'none', display: 'flex',

@@ -6,6 +6,7 @@ import CreateGroupPage from './pages/CreateGroupPage'
 import GroupDetailPage from './pages/GroupDetailPage'
 import MyGroupPage from './pages/MyGroupPage'
 import ChatPage from './pages/ChatPage'
+import AdminPage from './pages/AdminPage'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }) {
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="my-group" element={<MyGroupPage />} />
             <Route path="chat" element={<ChatPage />} />
             <Route path="chat/:groupId" element={<ChatPage />} />
+            <Route path="admin" element={<AdminPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

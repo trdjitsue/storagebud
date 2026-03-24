@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { HALLS, ITEM_TYPES, SIZE_OPTIONS } from '../lib/constants'
+import { HALLS, HALL_ROOM_TYPES, ITEM_TYPES, SIZE_OPTIONS } from '../lib/constants'
 
 export default function CreateGroupPage() {
   const { profile } = useAuth()
   const navigate = useNavigate()
   const [hall, setHall] = useState('')
+  const [roomType, setRoomType] = useState('')
   const [room, setRoom] = useState('')
   const [maxMembers, setMaxMembers] = useState(4)
   const [requiresApproval, setRequiresApproval] = useState(true)
@@ -22,21 +23,26 @@ export default function CreateGroupPage() {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
 
+  function handleHallChange(val) {
+    setHall(val)
+    setRoomType('')
+  }
+
   async function handleCreate(e) {
     e.preventDefault()
     if (!hall || !room || !selSize || selItems.length === 0 || !moveIn || !moveOut) {
       setErr('Please fill in all required fields'); return
     }
     setLoading(true); setErr('')
+    const fullRoom = roomType ? `${room} · ${roomType}` : room
     const { data: group, error } = await supabase.from('groups').insert({
-      hall, room, max_members: maxMembers, admin_id: profile.id,
+      hall, room: fullRoom, max_members: maxMembers, admin_id: profile.id,
       requires_approval: requiresApproval, rent_sgd: rentSgd,
       storage_start: storageStart || null, storage_end: storageEnd || null, notes
     }).select().single()
 
     if (error) { setErr(error.message); setLoading(false); return }
 
-    // Add creator as first member
     await supabase.from('group_members').insert({
       group_id: group.id, user_id: profile.id,
       size: selSize, items: selItems, move_in: moveIn, move_out: moveOut
@@ -44,6 +50,8 @@ export default function CreateGroupPage() {
 
     navigate(`/browse/${group.id}`)
   }
+
+  const roomTypes = hall ? (HALL_ROOM_TYPES[hall] || []) : []
 
   return (
     <div>
@@ -58,11 +66,30 @@ export default function CreateGroupPage() {
 
           <div style={{ marginBottom: 12 }}>
             <label style={{ fontSize: 12, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>Hall *</label>
-            <select value={hall} onChange={e => setHall(e.target.value)} required>
+            <select value={hall} onChange={e => handleHallChange(e.target.value)} required>
               <option value="">Select a hall...</option>
-              {HALLS.map(h => <option key={h} value={h}>{h}</option>)}
+              <optgroup label="Numbered Halls">
+                {HALLS.filter(h => h.startsWith('Hall')).map(h => <option key={h} value={h}>{h}</option>)}
+              </optgroup>
+              <optgroup label="Named Halls">
+                {HALLS.filter(h => !h.startsWith('Hall')).map(h => <option key={h} value={h}>{h}</option>)}
+              </optgroup>
             </select>
           </div>
+
+          {hall && roomTypes.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>Room type</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {roomTypes.map(rt => (
+                  <span key={rt} className={`chip ${roomType === rt ? 'selected' : ''}`}
+                    onClick={() => setRoomType(roomType === rt ? '' : rt)}>
+                    {rt}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ marginBottom: 12 }}>
             <label style={{ fontSize: 12, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>Room number *</label>
@@ -93,7 +120,6 @@ export default function CreateGroupPage() {
             </div>
           </div>
 
-          {/* Approval toggle */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)' }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 500 }}>Require approval to join</div>
@@ -118,7 +144,6 @@ export default function CreateGroupPage() {
           </div>
         </div>
 
-        {/* YOUR OWN ITEMS */}
         <div className="card" style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Your storage details</div>
 
@@ -165,10 +190,7 @@ export default function CreateGroupPage() {
 
           <div>
             <label style={{ fontSize: 12, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>Additional notes (optional)</label>
-            <textarea
-              placeholder="e.g. My suitcase is quite large, I can help carry boxes up stairs..."
-              style={{ height: 60 }}
-            />
+            <textarea placeholder="e.g. My suitcase is quite large, I can help carry boxes up stairs..." style={{ height: 60 }} />
           </div>
         </div>
 
